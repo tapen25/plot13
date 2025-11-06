@@ -1,53 +1,35 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ケイデンス検出デモ</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; padding: 16px; }
+    #state { font-size: 1.4rem; font-weight: 600; padding: 8px 12px; border-radius: 6px; display:inline-block; color:#fff; }
+    #info { margin-top: 8px; }
+    canvas { max-width: 100%; height: 240px; }
+    .controls { margin-top: 12px; }
+    button { padding: 8px 12px; margin-right: 8px; }
+  </style>
+</head>
 <body>
-  <h2 id="cadence">ケイデンス: 計測中...</h2>
-  <h2 id="status">状態: 準備中</h2>
-  <button id="startBtn">センサーを許可して開始</button>
+  <h1>歩行ケイデンス検出</h1>
 
-  <script>
-    const startBtn = document.getElementById("startBtn");
-    const cadenceEl = document.getElementById("cadence");
-    const statusEl = document.getElementById("status");
+  <div>
+    状態: <span id="state">初期化中</span>
+    <div id="info">ケイデンス: <span id="cadence">--</span> 歩/分</div>
+  </div>
 
-    let lastAcc = 0;
-    let stepTimestamps = [];
+  <div class="controls">
+    <button id="reqPermission">モーション権限を要求 (iOS)</button>
+    <button id="simulateStep">ステップをシミュレート</button>
+    <button id="reset">リセット</button>
+  </div>
 
-    function processMotion(event) {
-      const accY = event.accelerationIncludingGravity.y;
-      const now = Date.now();
+  <canvas id="chart"></canvas>
 
-      // 閾値を超えた瞬間をステップとみなす
-      if (accY - lastAcc > 2) {
-        stepTimestamps.push(now);
-        // 5秒より古いデータを削除
-        stepTimestamps = stepTimestamps.filter(t => now - t < 5000);
-
-        // ケイデンス（spm = 歩/分）
-        const cadence = (stepTimestamps.length * 60) / 5;
-        cadenceEl.textContent = `ケイデンス: ${cadence.toFixed(0)} spm`;
-
-        // 状態分類
-        let state = "静止 🧍";
-        if (cadence > 10 && cadence < 120) state = "歩行 🚶";
-        else if (cadence >= 120) state = "早歩き 🏃‍♀️";
-
-        statusEl.textContent = `状態: ${state}`;
-      }
-
-      lastAcc = accY;
-    }
-
-    startBtn.addEventListener("click", async () => {
-      if (typeof DeviceMotionEvent.requestPermission === "function") {
-        const response = await DeviceMotionEvent.requestPermission();
-        if (response !== "granted") {
-          alert("センサーのアクセスが拒否されました。");
-          return;
-        }
-      }
-
-      window.addEventListener("devicemotion", processMotion);
-      startBtn.disabled = true;
-      statusEl.textContent = "計測中...";
-    });
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="main.js"></script>
 </body>
+</html>
