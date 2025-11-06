@@ -6,9 +6,13 @@
   const resetBtn = document.getElementById('reset');
   const ctx = document.getElementById('chart').getContext('2d');
 
-  // 設定: ケイデンスしきい値（歩/分）
-  const THRESHOLD_STATIONARY = 20; // 未満は静止
-  const THRESHOLD_FAST = 110; // これ以上は早歩き
+  // ▼▼▼ 変更点 1: ケイデンスしきい値（歩/分） ▼▼▼
+  // 状態判定のしきい値を5段階に変更
+  const THRESHOLD_SONG1_END = 20;  // これ未満は「曲①」
+  const THRESHOLD_TRANS1_END = 40; // これ未満は「遷移①」
+  const THRESHOLD_SONG2_END = 100; // これ未満は「曲②」
+  const THRESHOLD_TRANS2_END = 120; // これ未満は「遷移②」、これ以上は「曲③」
+  // ▲▲▲ 変更点 1 ▲▲▲
 
   // 歩検出パラメータ
   let lastStepTs = 0;
@@ -45,14 +49,28 @@
     }
   });
 
+  // ▼▼▼ 変更点 2: 状態分類関数 ▼▼▼
   function classify(cadence) {
-    if (cadence < THRESHOLD_STATIONARY) return { label: '静止', color: '#666' };
-    if (cadence >= THRESHOLD_FAST) return { label: '早歩き', color: '#d9534f' };
-    return { label: '歩行', color: '#5cb85c' };
+    if (cadence < THRESHOLD_SONG1_END) {
+      return { label: '曲①', color: '#6c757d' }; // (例: グレー)
+    }
+    if (cadence < THRESHOLD_TRANS1_END) {
+      return { label: '遷移①', color: '#007bff' }; // (例: ブルー)
+    }
+    if (cadence < THRESHOLD_SONG2_END) {
+      return { label: '曲②', color: '#5cb85c' }; // (例: グリーン)
+    }
+    if (cadence < THRESHOLD_TRANS2_END) {
+      return { label: '遷移②', color: '#ffc107' }; // (例: イエロー)
+    }
+    // THRESHOLD_TRANS2_END 以上
+    return { label: '曲③', color: '#d9534f' }; // (例: レッド)
   }
+  // ▲▲▲ 変更点 2 ▲▲▲
 
   function updateUI(cadence) {
     cadenceEl.textContent = cadence === null ? '--' : Math.round(cadence);
+    // 「初期化中」の状態はそのまま残しつつ、classify関数を呼び出す
     const st = cadence === null ? { label: '初期化中', color: '#888' } : classify(cadence);
     stateEl.textContent = st.label;
     stateEl.style.background = st.color;
