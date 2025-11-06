@@ -1,0 +1,53 @@
+<body>
+  <h2 id="cadence">ケイデンス: 計測中...</h2>
+  <h2 id="status">状態: 準備中</h2>
+  <button id="startBtn">センサーを許可して開始</button>
+
+  <script>
+    const startBtn = document.getElementById("startBtn");
+    const cadenceEl = document.getElementById("cadence");
+    const statusEl = document.getElementById("status");
+
+    let lastAcc = 0;
+    let stepTimestamps = [];
+
+    function processMotion(event) {
+      const accY = event.accelerationIncludingGravity.y;
+      const now = Date.now();
+
+      // 閾値を超えた瞬間をステップとみなす
+      if (accY - lastAcc > 2) {
+        stepTimestamps.push(now);
+        // 5秒より古いデータを削除
+        stepTimestamps = stepTimestamps.filter(t => now - t < 5000);
+
+        // ケイデンス（spm = 歩/分）
+        const cadence = (stepTimestamps.length * 60) / 5;
+        cadenceEl.textContent = `ケイデンス: ${cadence.toFixed(0)} spm`;
+
+        // 状態分類
+        let state = "静止 🧍";
+        if (cadence > 10 && cadence < 120) state = "歩行 🚶";
+        else if (cadence >= 120) state = "早歩き 🏃‍♀️";
+
+        statusEl.textContent = `状態: ${state}`;
+      }
+
+      lastAcc = accY;
+    }
+
+    startBtn.addEventListener("click", async () => {
+      if (typeof DeviceMotionEvent.requestPermission === "function") {
+        const response = await DeviceMotionEvent.requestPermission();
+        if (response !== "granted") {
+          alert("センサーのアクセスが拒否されました。");
+          return;
+        }
+      }
+
+      window.addEventListener("devicemotion", processMotion);
+      startBtn.disabled = true;
+      statusEl.textContent = "計測中...";
+    });
+  </script>
+</body>
