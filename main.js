@@ -65,12 +65,12 @@
     stepTimestamps = stepTimestamps.filter(ts => ts >= windowStart);
     const count = stepTimestamps.length;
     if (count === 0) return 0;
-    if(count >=2){
+    if (count >= 2) {
       const first = stepTimestamps[0];
       const last = stepTimestamps[stepTimestamps.length - 1];
       const durationMinutes = (last - first) / 60000;
       if (durationMinutes <= 0) return 0;
-      const cadence = ((count - 1) / durationMin); 
+      const cadence = ((count - 1) / durationMinutes);
       return cadence;
     }
     return (count / windowSeconds) * 60;
@@ -106,16 +106,16 @@
     const az = a.z - gravity.z;
     const mag = Math.sqrt(ax*ax + ay*ay + az*az);
 
-    // 単純ピーク検出: 閾値越えで上昇 -> ピーク
+    // 単純ピーク検出: 閾値越えで上昇 -> 頂点 -> 下降（プロミネンスと最小間隔を確認）
     const now = Date.now();
-    if(
-      prevFiltered<lastFiltered && // 下り坂
-      lastFiltered>PEAK_THRESHOLD && // 閾値越え
+    if (
+      prevFiltered < lastFiltered && // 上昇から頂点に到達
+      lastFiltered > PEAK_THRESHOLD && // 閾値越え
       lastFiltered - prevFiltered > MIN_PEAK_PROMINENCE && // プロミネンス
-      mag <= lastFiltered &&// 現在値が下降中
+      mag <= lastFiltered && // 現在値が下降中
       (now - lastPeakTime) > MIN_STEP_INTERVAL // 最小間隔
-    ){
-      lastPeakTime=now;
+    ) {
+      lastPeakTime = now;
       onStep(now);
     }
     prevFiltered = lastFiltered;
