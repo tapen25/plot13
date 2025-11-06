@@ -12,8 +12,9 @@
 
   // 歩検出パラメータ
   let lastStepTs = 0;
-  const MIN_STEP_INTERVAL = 250; // ms （上限の歩速 ~240 spm）
-  const PEAK_THRESHOLD = 1.0; // 加速度ピーク閾値 (m/s^2)
+  const MIN_STEP_INTERVAL = 300; // ms （上限の歩速 ~240 spm）
+  const PEAK_THRESHOLD = 1.2; // 加速度ピーク閾値 (m/s^2)
+  const MIN_PEAK_PROMINENCE = 0.5;
   const windowSeconds = 5; // スライディングウィンドウで計測
 
   // 状態保管
@@ -64,9 +65,15 @@
     stepTimestamps = stepTimestamps.filter(ts => ts >= windowStart);
     const count = stepTimestamps.length;
     if (count === 0) return 0;
-    // cadence = steps per minute over the window
-    const cadence = (count / windowSeconds) * 60;
-    return cadence;
+    if(count >=2){
+      const first = stepTimestamps[0];
+      const last = stepTimestamps[stepTimestamps.length - 1];
+      const durationMinutes = (last - first) / 60000;
+      if (durationMinutes <= 0) return 0;
+      const cadence = ((count - 1) / durationMin); 
+      return cadence;
+    }
+    return (count / windowSeconds) * 60;
   }
 
   function pushHistory(cadence) {
@@ -86,6 +93,7 @@
   // ステップ検出: DeviceMotion イベントの加速度からピーク検出
   let lastFiltered = 0;
   let lastPeakTime = 0;
+  let prevFiltered = 0;
   function handleMotion(ev) {
     // accelerationIncludingGravity を使い、ローパスで重力を推定して差分を取る
     const a = ev.accelerationIncludingGravity;
@@ -100,12 +108,17 @@
 
     // 単純ピーク検出: 閾値越えで上昇 -> ピーク
     const now = Date.now();
-    // 上昇から下降への移行でピークと判定
-    if (lastFiltered > PEAK_THRESHOLD && mag <= lastFiltered && (now - lastPeakTime) > MIN_STEP_INTERVAL) {
-      // ピーク検知
-      lastPeakTime = now;
+    if(
+      prevFiltered<lastFiltered && // 下り坂
+      lastFiltered>PEAK_THRESHOLD && // 閾値越え
+      lastFiltered - prevFiltered > MIN_PEAK_PROMINENCE && // プロミネンス
+      mag <= lastFiltered &&// 現在値が下降中
+      (now - lastPeakTime) > MIN_STEP_INTERVAL // 最小間隔
+    ){
+      lastPeakTime=now;
       onStep(now);
     }
+    prevFiltered = lastFiltered;
     lastFiltered = mag;
   }
 
